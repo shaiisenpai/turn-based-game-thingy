@@ -1,3 +1,6 @@
+import random
+
+
 class Character:
     def __init__(self, name, hp, atk, spd):
         self.name = name
@@ -101,23 +104,104 @@ class Battle:
 
         units = self.get_alive_units(self.party + self.enemies)
         self.action_order(units)
-
         for unit in units:
-            if not unit.is_alive():
-                continue
-            if unit in self.party:
-                target = self.get_alive_units(self.enemies)
-            else:
-                target = self.get_alive_units(self.party)
+            if self.is_battle_continuing():
+                if not unit.is_alive():
+                    continue
+                if unit in self.party:
+                    self.player_turn(unit)
+                else:
+                    self.enemy_turn(unit)
 
-            if not target:
-                break
-
-            target = target[0]
-            unit.attack(target)
 
         self.display_result()
         self.turn_count += 1
+
+
+    def player_turn(self, unit):
+        print(f"{unit.name}の行動！")
+
+        action = self.select_action(unit)
+
+        if action == "attack":
+            target = self.select_target(self.enemies)
+            unit.attack(target)
+
+        if action == "flame":
+            target = self.select_target(self.enemies)
+            unit.flame(target)
+
+        if action == "concentrate":
+            unit.concentrate()
+
+        if action == "smash":
+            target = self.select_target(self.enemies)
+            unit.smash(target)
+
+        if action == "uproar":
+            unit.uproar(self.party, self.enemies)
+
+    def select_action(self, unit):
+        while True:
+            if isinstance(unit, Mage):
+                print("1.通常攻撃")
+                print("2.フレイム")
+                print("3.集中")
+
+            if isinstance(unit, Warrior):
+                print("1.通常攻撃")
+                print("2.スマッシュ")
+                print("3.大暴れ")
+
+            command = input("コマンドを入力してください: ")
+
+            if command == "1".lower():
+                return "attack"
+
+            if isinstance(unit, Mage):
+                if command == "2".lower():
+                    return "flame"
+                elif command == "3".lower():
+                    return "concentrate"
+
+            if isinstance(unit, Warrior):
+                if command == "2".lower():
+                    return "smash"
+                elif command == "3".lower():
+                    return "uproar"
+
+            print("正しい番号を入力してください。")
+
+    def select_target(self, targets):
+        alive_targets = self.get_alive_units(targets)
+
+        while True:
+            print("攻撃対象を選んでください。")
+
+            for index, target in enumerate(alive_targets, start=1):
+                print(f"{index}: {target.name} | HP: {target.hp}")
+
+            command = input("対象の番号: ")
+
+            if command.isdigit():
+                target_index = int(command) - 1
+
+                if 0 <= target_index <= len(alive_targets):
+                    return alive_targets[target_index]
+
+            print("正しい番号を入力してください。")
+
+
+    def enemy_turn(self, unit):
+
+        alive_target = self.get_alive_units(self.party)
+
+        if not alive_target:
+            return
+
+        target = random.choice(alive_target)
+        unit.attack(target)
+        
 
     def action_order(self, units):
         units.sort(
@@ -132,25 +216,26 @@ class Battle:
         ]
 
     def display_result(self):
-        if not self.get_alive_units(enemies):
+        if not self.get_alive_units(self.enemies):
             print("----- Victory! -----")
-        if not self.get_alive_units(party):
+        if not self.get_alive_units(self.party):
             print("----- Defeat... -----")
 
-    def end_battle(self):
-        return self.get_alive_units(enemies) and self.get_alive_units(party)
+    def is_battle_continuing(self):
+        return self.get_alive_units(self.enemies) and self.get_alive_units(self.party)
 
 
 
 
-Enemy1 = Enemy("Maou", 500, 100, 150)
-Ally1 = Mage("Lala", 90, 40, 80, 100)
+Enemy1 = Enemy("Maou", 100, 100, 150)
+Enemy2 = Enemy("Slime", 100, 40, 50)
+Ally1 = Mage("Lala", 200, 40, 80, 100)
 Ally2 = Warrior("Zeta", 300, 80, 100)
 
 party = [Ally1, Ally2]
-enemies = [Enemy1]
+enemies = [Enemy1, Enemy2]
 
 Battle_Manager = Battle(party, enemies)
 
-while Battle_Manager.end_battle():
+while Battle_Manager.is_battle_continuing():
     Battle_Manager.next_turn()
